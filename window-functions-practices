@@ -1,5 +1,5 @@
 
-1)Using <bPARTITION BY> to get grouped rows:
+1)Using PARTITION BY to get grouped rows:
 
 SELECT 
 title,
@@ -8,3 +8,151 @@ genre,
 AVG(editor_rating) OVER(PARTITION BY genre)
 FROM 
 movie
+
+2) Using Aggregate Functions to get Partitioned results for every row. 
+
+SELECT 
+DISTINCT(M.title),
+AVG(R.rating) OVER(PARTITION BY M.title) avg_movie_rating,
+AVG(R.rating) OVER(PARTITION BY M.genre) avg_genre_rating,
+AVG(R.rating) OVER() avg_rating
+FROM 
+movie M
+INNER JOIN review R ON R.movie_id = M.id
+
+3) Mathmetical calculations by using PARTITION BY and other functions.
+SELECT 
+DISTINCT amount_worth,
+COUNT(id) OVER(PARTITION BY amount_worth) AS count_1,
+COUNT(id) OVER() AS count_2,
+
+ROUND
+(
+  CAST(COUNT(id) OVER(PARTITION BY amount_worth) AS numeric)
+  /
+  COUNT(id) OVER() *100
+) AS percentage
+
+FROM giftcard
+
+
+4)
+SELECT 
+DISTINCT
+first_name,
+last_name,
+AVG(S.payment_amount) OVER(PARTITION BY C.id),
+AVG(S.payment_amount) OVER(PARTITION BY C.country)
+FROM 
+customer C
+INNER JOIN 
+single_rental S ON S.customer_id = C.id
+
+5) Using CTE and RANK function to get second best movie.
+
+WITH ranking AS
+  (SELECT
+    title,
+    RANK() OVER(ORDER BY editor_rating DESC) AS rank
+  FROM movie)
+  
+SELECT title
+FROM ranking
+WHERE rank = 2;
+
+6) Using DENSE_RANK to rank all rows from highest to lowest.
+
+SELECT 
+title,
+release_year,
+editor_rating,
+DENSE_RANK() OVER(ORDER BY editor_rating DESC)
+FROM 
+movie
+
+7)
+SELECT
+movie.title,
+single_rental.rental_period,
+single_rental.payment_amount,
+RANK() OVER(ORDER BY single_rental.payment_amount DESC)
+FROM 
+single_rental
+INNER JOIN movie ON movie.id = single_rental.movie_id
+
+
+8)
+WITH ranking
+AS
+(
+SELECT
+C.first_name,
+C.last_name,
+G.payment_date,
+ROW_NUMBER() OVER(ORDER BY G.payment_date DESC) AS most_recent
+FROM  
+customer C
+INNER JOIN giftcard G ON G.customer_id = C.id
+)
+
+SELECT
+first_name,
+last_name,
+payment_date
+FROM ranking
+WHERE most_recent = 2;
+
+
+9) 
+
+SELECT 
+S.rental_date,
+M.title,
+M.genre,
+S.payment_amount,
+RANK() OVER(PARTITION BY M.genre ORDER BY S.payment_amount DESC)
+FROM 
+single_rental AS s
+INNER JOIN movie M ON M.id = S.movie_id
+
+10) WINDOW FRAMES and Aggregate Functions using
+
+SELECT
+id,
+rental_date,
+payment_amount,
+SUM(payment_amount) OVER(ORDER BY rental_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+FROM 
+single_rental
+
+11) Calculation by taking into account the previous two rows, the current row and the next two rows when sorted by the payment_date.
+SELECT
+id,
+rental_date,
+platform,
+payment_date,
+payment_amount, 
+AVG(payment_amount) OVER(ORDER BY payment_date ROWS BETWEEN 2 PRECEDING AND 2 FOLLOWING)
+FROM 
+single_rental
+
+12)
+SELECT 
+id,
+length,
+platform,
+payment_date,
+payment_amount,
+SUM(payment_amount) OVER(ORDER BY payment_date RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+FROM
+subscription
+
+13)
+SELECT 
+SR.rental_date,
+M.title,
+M.genre,
+SR.payment_amount,
+MAX(SR.payment_amount) OVER(PARTITION BY M.genre ORDER BY rental_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS highest_amount
+FROM single_rental SR
+JOIN movie M ON SR.movie_id = M.id
