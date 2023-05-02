@@ -1,5 +1,6 @@
 
-**Using PARTITION BY to get grouped rows:
+1)Using <bPARTITION BY> to get grouped rows:
+
 SELECT 
 title,
 editor_rating,
