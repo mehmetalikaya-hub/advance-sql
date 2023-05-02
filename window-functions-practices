@@ -156,3 +156,42 @@ SR.payment_amount,
 MAX(SR.payment_amount) OVER(PARTITION BY M.genre ORDER BY rental_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS highest_amount
 FROM single_rental SR
 JOIN movie M ON SR.movie_id = M.id
+
+14)
+SELECT 
+amount_worth,
+payment_amount,
+FIRST_VALUE(payment_amount) OVER(ORDER BY payment_date),
+LAST_VALUE(payment_amount) OVER(ORDER BY payment_date ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
+FROM 
+giftcard
+
+15) 
+SELECT
+id,
+payment_date,
+payment_amount,
+LAG(payment_amount) OVER(ORDER BY payment_date),
+payment_amount -  LAG(payment_amount) OVER(ORDER BY payment_date)
+FROM 
+single_rental
+
+16)
+WITH 
+total_payment
+AS
+(
+SELECT 
+rental_date,
+SUM(payment_amount) AS payment_amounts
+FROM single_rental
+GROUP BY rental_date
+)
+
+SELECT 
+rental_date,
+payment_amounts,
+LAG(payment_amounts) OVER(ORDER BY rental_date),
+payment_amounts - LAG(payment_amounts) OVER(ORDER BY rental_date) AS difference
+FROM 
+total_payment
