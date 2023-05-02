@@ -1,0 +1,9 @@
+
+**Using PARTITION BY to get grouped rows:
+SELECT 
+title,
+editor_rating,
+genre,
+AVG(editor_rating) OVER(PARTITION BY genre)
+FROM 
+movie
