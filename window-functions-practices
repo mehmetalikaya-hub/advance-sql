@@ -195,3 +195,87 @@ LAG(payment_amounts) OVER(ORDER BY rental_date),
 payment_amounts - LAG(payment_amounts) OVER(ORDER BY rental_date) AS difference
 FROM 
 total_payment
+
+17)
+WITH 
+tab
+AS
+(
+SELECT
+  first_name,
+  last_name,
+  SUM(payment_amount) AS sum_of_payments
+FROM single_rental
+JOIN customer
+  ON customer.id = single_rental.customer_id
+GROUP BY first_name, last_name
+)
+
+SELECT
+first_name,
+last_name,
+sum_of_payments,
+NTH_VALUE(sum_of_payments,4) OVER(ORDER BY sum_of_payments ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
+FROM 
+tab
+
+18) PARTITION BY ORDER BY
+SELECT
+title,
+genre,
+editor_rating,
+RANK() OVER(PARTITION BY genre ORDER BY editor_rating DESC)
+FROM 
+movie
+
+19) 
+SELECT
+R.id,
+M.title,
+R.rating,
+LAG(R.rating) OVER(PARTITION BY M.title ORDER BY R.id)
+FROM 
+review R
+JOIN 
+movie M ON M.id = R.movie_id
+
+20)
+SELECT 
+M.title,
+M.genre,
+AVG(R.rating),
+RANK() OVER(PARTITION BY M.genre ORDER BY AVG(R.rating) DESC)
+FROM 
+movie M
+JOIN 
+review R ON R.movie_id= M.id
+GROUP BY M.title,M.genre
+
+21)
+SELECT 
+platform,
+SUM(payment_amount),
+RANK() OVER(ORDER BY SUM(payment_amount) DESC)
+FROM 
+subscription
+GROUP BY platform
+
+22)
+WITH
+tab
+AS
+(
+SELECT 
+payment_amount,
+NTILE(3) OVER(ORDER BY payment_amount) AS bucket
+FROM 
+subscription
+)
+
+SELECT 
+bucket,
+MIN(payment_amount),
+MAX(payment_amount)
+FROM 
+tab
+GROUP BY bucket
