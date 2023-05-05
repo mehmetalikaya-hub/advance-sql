@@ -1,0 +1,17 @@
+1)
+WITH project_revenue AS (
+  SELECT
+    project.id,
+    SUM(amount) AS sum_amount
+  FROM project 
+  JOIN donation 
+    ON donation.project_id = project.id
+  GROUP BY project.id
+)
+
+SELECT
+  id,
+  sum_amount
+FROM project_revenue
+ORDER BY sum_amount DESC;
+
