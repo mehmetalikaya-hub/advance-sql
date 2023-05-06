@@ -15,3 +15,244 @@ SELECT
 FROM project_revenue
 ORDER BY sum_amount DESC;
 
+2)
+WITH
+amount_tab
+AS
+(
+SELECT
+P.id,
+P.minimal_amount AS min_amount,
+SUM(D.amount) AS total_amount
+FROM 
+project P 
+INNER JOIN 
+donation D ON D.project_id = P.id
+GROUP BY P.id,P.minimal_amount
+)
+
+SELECT 
+COUNT(id)
+FROM
+amount_tab
+WHERE 
+total_amount >= min_amount
+
+3)
+WITH temporary AS (
+  SELECT
+    author_id,
+    project_id,
+    minimal_amount,
+    SUM(amount) AS donations
+  FROM donation
+  JOIN project
+    ON donation.project_id = project.id
+  GROUP BY author_id, project_id, minimal_amount
+)
+
+SELECT
+  first_name,
+  last_name,
+  COUNT(project_id) AS projects_count
+FROM temporary
+JOIN supporter
+  ON author_id = supporter.id
+WHERE donations < minimal_amount
+GROUP BY first_name, last_name
+ORDER BY projects_count DESC
+
+3)Count the number of projects for which the total sum of donations exceeds 50% of the minimal_amount.
+WITH amount_tab
+AS
+(
+SELECT
+D.project_id,  
+P.minimal_amount,
+SUM(D.amount) AS total_amount
+FROM 
+project P
+INNER JOIN donation D ON P.id = D.project_id
+GROUP BY D.project_id,P.minimal_amount
+)  
+
+SELECT 
+COUNT(project_id)
+FROM 
+amount_tab
+WHERE total_amount > minimal_amount * 0.5
+
+4)
+WITH ten_percent
+AS
+(
+SELECT
+D.donated,
+P.minimal_amount,
+SUM(D.amount) AS total_amount
+FROM 
+project P
+INNER JOIN 
+donation D ON D.project_id = P.id
+WHERE D.donated BETWEEN '2016-01-01' AND '2016-01-31' 
+GROUP BY D.donated,P.minimal_amount, supporter_id
+HAVING SUM(D.amount) >= minimal_amount * 0.1
+),
+twenty_percent
+AS
+(
+SELECT 
+D.donated,
+P.minimal_amount,
+SUM(D.amount) AS total_amount
+FROM 
+project P
+INNER JOIN 
+donation D ON D.project_id = P.id
+WHERE D.donated BETWEEN '2016-02-01' AND '2016-02-29' 
+GROUP BY D.donated,P.minimal_amount, supporter_id
+HAVING SUM(D.amount) >= minimal_amount * 0.2
+)
+SELECT 
+total_amount,
+donated
+FROM ten_percent
+UNION 
+SELECT 
+total_amount,
+donated
+FROM twenty_percent
+
+5) Show together two groups of users:
+those who donated more than $200 altogether,
+those who donated at least twice.
+For each of them, show id, first_name and last_name.
+
+WITH more_than_two
+AS
+(
+SELECT 
+S.id,
+S.first_name,
+S.last_name,
+SUM(D.amount) AS total_amount
+FROM 
+supporter S
+INNER JOIN 
+donation D ON S.id = D.supporter_id
+GROUP BY S.id,S.first_name,S.last_name
+HAVING SUM(D.amount) >200
+),
+at_least_twice
+AS
+(
+SELECT 
+S.id,
+S.first_name,
+S.last_name,
+COUNT(D.supporter_id) AS count_of_donation
+FROM 
+supporter S
+INNER JOIN 
+donation D ON S.id = D.supporter_id
+GROUP BY S.id,S.first_name,S.last_name
+HAVING COUNT(D.supporter_id)  >=2
+)
+SELECT 
+id, 
+first_name,
+last_name
+FROM 
+more_than_two
+UNION 
+SELECT 
+id,
+first_name,
+last_name
+FROM 
+at_least_twice
+
+6)
+WITH main_table
+AS
+(
+  SELECT
+    project.id,
+    SUM(amount) AS sum_amount,
+    minimal_amount,
+    COUNT(DISTINCT donation.id) AS count_donations
+  FROM project
+  JOIN donation
+    ON donation.project_id = project.id 
+  GROUP BY project.id, minimal_amount 
+  HAVING SUM(amount) > minimal_amount)
+  
+  SELECT
+  MAX(count_donations) AS max_donations,
+  MIN(count_donations) AS min_donations
+  FROM main_table
+  
+  6) Show the average total amount raised in successful projects that had more than 10 donations.
+  
+  WITH
+total_amount
+AS
+(
+SELECT
+P.minimal_amount,
+COUNT(D.id) AS donation_count,
+SUM(D.amount) AS total_donation
+FROM 
+project P
+INNER JOIN donation D ON D.project_id = P.id
+GROUP BY P.minimal_amount
+HAVING SUM(D.amount) >= P.minimal_amount
+)
+
+SELECT 
+AVG(total_donation)
+FROM 
+total_amount
+WHERE donation_count >10
+
+7) Among successful projects, those that raised 100% to 150% of the minimum amount are good projects, whereas those that raised more than 150% are great projects. Show the number of projects along with a string representing how good the project is (good projects or great projects) name the column tag.
+
+WITH good_proj
+AS
+(
+SELECT 
+D.project_id,
+SUM(D.amount) AS total_donations,
+  minimal_amount,
+COUNT( DISTINCT D.project_id) AS count_donations
+FROM 
+donation D 
+INNER JOIN project P ON P.id = D.project_id
+GROUP BY D.project_id,minimal_amount
+HAVING SUM(D.amount) >= P.minimal_amount AND SUM(D.amount) <= 1.5 * P.minimal_amount
+),
+great_proj
+AS
+(
+SELECT 
+D.project_id,
+SUM(D.amount) AS total_donations,
+  minimal_amount,
+COUNT(DISTINCT D.project_id) AS count_donations
+FROM 
+donation D 
+INNER JOIN project P ON P.id = D.project_id
+GROUP BY D.project_id,minimal_amount
+HAVING SUM(D.amount) > 1.5 * P.minimal_amount
+)
+SELECT 
+COUNT(*),
+'good projects' AS tag
+FROM  
+good_proj
+UNION
+SELECT
+COUNT(*),
+'great projects' AS tag
+FROM  
+great_proj
