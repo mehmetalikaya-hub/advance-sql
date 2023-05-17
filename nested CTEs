@@ -1,0 +1,160 @@
+**** First, find daily sums of amount_earned in each city. 
+Then, find the average daily amount for all cities for all days. Finally, 
+show the id and name of each city plus the number of daily sums that exceeded the average daily amount for each given city.****
+-------------------------------------------
+WITH daily_sum_city AS (
+  SELECT
+    c.id,
+    c.name,
+    ds.day,
+    SUM(amount_earned) AS sum_amount
+  FROM salesman s
+  JOIN daily_sales ds
+    ON s.id = ds.salesman_id
+  JOIN city c
+    ON s.city_id = c.id
+  GROUP BY c.id, ds.day, c.name
+),
+avg_all_cities AS (
+  SELECT
+    AVG(sum_amount) AS avg_amount
+  FROM daily_sum_city
+)
+SELECT
+  id,
+  name,
+  COUNT(*)
+FROM daily_sum_city, avg_all_cities
+WHERE sum_amount > avg_amount
+GROUP BY id, name;
+-------------------------------------------
+2) Count the maximal amount_earned on a given day in a given city. 
+Then, calculate the average maximal amount across all cities on a given day.
+Finally, count the number of days on which that average maximal exceeded $1700.
+
+WITH maximal_earned
+AS
+(
+SELECT 
+C.id,
+C.name,
+DS.day,
+MAX(DS.amount_earned) AS maximal_amount
+FROM 
+salesman S 
+JOIN daily_sales DS ON DS.salesman_id = S.id
+JOIN city C ON S.city_id = C.id
+GROUP BY C.id,C.name,DS.day
+),
+avg_maximal_earned
+AS
+(
+SELECT 
+  day,
+  AVG(maximal_amount) AS avg_maximal_amount
+  FROM maximal_earned
+GROUP BY day
+)
+SELECT 
+COUNT(*)
+FROM 
+avg_maximal_earned
+WHERE avg_maximal_amount >1700
+---------------------------------------------------------
+3) Find the total number of customers in each region on each day. 
+Then, calculate the average number of customers across all regions on each day.
+Finally, show the day with the lowest average across all regions (that means, show the day and the avg_region_customers).
+
+WITH total_customers_tab
+AS
+(
+SELECT 
+DS.day,
+C.region,
+SUM(DS.customers) AS total_customers
+FROM 
+daily_sales DS 
+JOIN salesman S ON S.id = DS.salesman_id
+JOIN city C ON C.id = S.city_id
+GROUP BY DS.day,C.region
+),
+avg_customers_tab
+AS
+(
+SELECT 
+ day,
+  AVG(total_customers) AS avg_region_customers
+  FROM 
+  total_customers_tab
+GROUP BY day
+)
+
+SELECT 
+day,
+avg_region_customers
+FROM 
+avg_customers_tab
+WHERE avg_region_customers = (SELECT MIN(avg_region_customers) FROM  avg_customers_tab);
+---------------------------------------------------------------------------------------------
+4)Compute the city-level average of the total distance travelled by each salesman. 
+Then compute the company-level average. Use the example provided in the explanation.
+---------------------------------------------------------------------------------------------
+WITH salesman_total_distance
+AS
+(
+SELECT 
+DS.salesman_id,
+S.city_id,
+SUM(distance) AS total_distance_travelled
+FROM 
+daily_sales DS 
+JOIN salesman S ON S.id = DS.salesman_id
+JOIN city C ON C.id = S.city_id
+GROUP BY DS.salesman_id,S.city_id
+),
+
+city_average
+AS
+(
+SELECT
+  city_id,
+  AVG(total_distance_travelled) AS average_distance_travelled
+  FROM salesman_total_distance
+  GROUP BY city_id
+)
+SELECT
+AVG(average_distance_travelled)
+FROM 
+city_average
+---------------------------------------------------------------------------------------------
+5) A salesman performs well if his total amount earned is above average amount earned in their city.
+We want to show which salesmen perform well.
+For each salesman show their first_name, last_name and the third column named label, with either 'Above average' or 'Below average', based on the total amount earned by the salesman.
+
+WITH total_salesman_earnings AS (
+  SELECT 
+    city_id,
+    first_name,
+    last_name,
+    salesman_id,
+    SUM(amount_earned) AS total_amount
+FROM daily_sales d
+JOIN salesman s
+  ON d.salesman_id = s.id
+GROUP BY city_id, salesman_id, first_name, last_name
+),
+ city_average AS (
+  SELECT
+    city_id,
+    AVG(total_amount) AS city_avg_amount
+FROM total_salesman_earnings
+GROUP BY city_id
+)
+
+SELECT 
+  first_name,
+  last_name,
+  CASE WHEN total_amount > city_avg_amount THEN 'Above average' ELSE 'Below average' END AS label
+FROM total_salesman_earnings s
+JOIN city_average c
+  ON s.city_id = c.city_id
