@@ -131,30 +131,40 @@ city_average
 We want to show which salesmen perform well.
 For each salesman show their first_name, last_name and the third column named label, with either 'Above average' or 'Below average', based on the total amount earned by the salesman.
 
-WITH total_salesman_earnings AS (
-  SELECT 
-    city_id,
-    first_name,
-    last_name,
-    salesman_id,
-    SUM(amount_earned) AS total_amount
-FROM daily_sales d
-JOIN salesman s
-  ON d.salesman_id = s.id
-GROUP BY city_id, salesman_id, first_name, last_name
+WITH total_earned_tab
+AS
+(
+SELECT
+S.first_name,
+S.last_name,
+C.id,  
+SUM(DS.amount_earned) AS total_earned
+FROM 
+daily_sales DS 
+JOIN salesman S ON S.id = DS.salesman_id
+JOIN city C ON C.id = S.city_id
+GROUP BY S.first_name, S.last_name,C.id
 ),
- city_average AS (
-  SELECT
-    city_id,
-    AVG(total_amount) AS city_avg_amount
-FROM total_salesman_earnings
-GROUP BY city_id
-)
 
-SELECT 
-  first_name,
-  last_name,
-  CASE WHEN total_amount > city_avg_amount THEN 'Above average' ELSE 'Below average' END AS label
-FROM total_salesman_earnings s
-JOIN city_average c
-  ON s.city_id = c.city_id
+avg_earned_city
+AS
+(
+  SELECT 
+  id,
+  AVG(total_earned) AS avg_earned_per_city
+  FROM 
+  total_earned_tab
+  GROUP BY id
+  )
+SELECT
+TE.first_name,
+TE.last_name,
+CASE WHEN TE.total_earned > AE.avg_earned_per_city THEN 'Above average' ELSE 'Below average' END AS label
+FROM 
+total_earned_tab TE 
+JOIN avg_earned_city AE ON AE.id = TE.id
+-------------------------------------
+6) Compare the average number of items sold by salesman from USA (country = 'USA') and other countries in the world.
+Name the group column group_name. In your query use values 'USA' and 'Other' to label the groups.
+
+
