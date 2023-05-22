@@ -167,4 +167,154 @@ JOIN avg_earned_city AE ON AE.id = TE.id
 6) Compare the average number of items sold by salesman from USA (country = 'USA') and other countries in the world.
 Name the group column group_name. In your query use values 'USA' and 'Other' to label the groups.
 
+WITH grouping AS
+(
+SELECT 
+id AS city_id,
+CASE WHEN country = 'USA' THEN country ELSE 'Other' END AS group_name
+FROM 
+city 
+),
+total_items_sold_salesman
+AS
+(
+SELECT
+G.city_id,
+group_name,
+DS.salesman_id,  
+SUM(items_sold) AS total_items_sold
+FROM
+daily_sales DS 
+JOIN 
+salesman S ON S.id = DS.salesman_id
+JOIN grouping G ON G.city_id = S.city_id
+GROUP BY G.city_id,G.group_name,DS.salesman_id
+)
+SELECT
+group_name,
+AVG(total_items_sold)
+FROM 
+total_items_sold_salesman
+GROUP BY group_name
 
+7) We define 'Good' salesman as those whose total amount earned is above average amount earned in their city.
+We want to compare the average number of items sold between the two groups of salesmen: the 'Good' salesmen and 'Bad' salesmen.
+
+WITH total_amout_tab
+AS
+(
+SELECT
+DS.salesman_id,
+S.city_id,
+SUM(DS.amount_earned) AS total_amount_earned
+FROM 
+daily_sales DS 
+JOIN salesman S ON S.id = DS.salesman_id
+GROUP BY DS.salesman_id, S.city_id
+
+),
+avg_amount_tab
+AS
+(
+SELECT 
+  city_id,
+  AVG(total_amount_earned) AS avg_amount_earned
+  FROM
+  total_amout_tab
+  GROUP BY city_id
+),
+grouping_tab
+AS
+(
+SELECT 
+TT.salesman_id, 
+CASE WHEN TT.total_amount_earned > AT.avg_amount_earned THEN 'Good' ELSE 'Bad' END AS label
+FROM 
+total_amout_tab TT
+JOIN 
+avg_amount_tab AT ON AT.city_id = TT.city_id
+),
+total_items_sold_tab
+AS
+(
+SELECT
+GT.salesman_id,
+GT.label,
+SUM(DS.items_sold) AS total_items
+FROM
+grouping_tab GT
+LEFT JOIN daily_sales DS ON DS.salesman_id = GT.salesman_id
+GROUP BY GT.salesman_id, GT.label
+)
+
+SELECT
+label,
+AVG(total_items) AS average
+FROM 
+total_items_sold_tab
+GROUP BY label
+
+8) Find the maximum number of items sold in each city on each day.
+Then, calculate the average maximum number of items sold in each city across all days.
+Finally, count the number of cities where that average maximal number of items sold is greater than 18.
+
+WITH max_unit_sold_tab
+AS
+(
+SELECT 
+C.name,
+DS.day,
+MAX(DS.items_sold) AS max_num
+FROM 
+city C
+LEFT JOIN salesman S ON S.city_id = C.id
+LEFT JOIN daily_sales DS ON S.id= DS.salesman_id 
+GROUP BY C.name, DS.day
+),
+
+avg_unit_sold_tab
+AS
+(
+SELECT 
+name,
+AVG(max_num)  AS avg_num 
+FROM max_unit_sold_tab  
+GROUP BY name
+)
+SELECT 
+COUNT(*) 
+FROM avg_unit_sold_tab AT 
+WHERE AT.avg_num > 18
+
+9) A city is performing well if their total number of items sold is above average for their region. 
+For each city show its name and its label, either 'Above average' or 'Below average', depending on how well the city performs.
+
+WITH total_sold_per_city
+AS
+(
+SELECT 
+C.name,
+C.region,
+SUM(DS.items_sold) AS total_num_of_items
+FROM 
+city C 
+LEFT JOIN salesman S ON S.city_id = C.id 
+LEFT JOIN daily_sales DS ON DS.salesman_id = S.id
+GROUP BY C.name,C.region
+),
+avg_sold_per_city
+AS
+(
+SELECT
+region,
+AVG(total_num_of_items) AS avg_num_of_items
+  FROM total_sold_per_city
+GROUP BY region  
+)
+
+SELECT 
+TC.name,
+CASE WHEN TC.total_num_of_items > AC.avg_num_of_items THEN 'Above average' ELSE 'Below average' END AS label
+FROM 
+total_sold_per_city AS TC 
+JOIN avg_sold_per_city AC ON AC.region = TC.region
