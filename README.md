@@ -4,4 +4,4 @@ In this file, you are going to see different scenarios with demo database by usi
 1) Introduction to Common Table Expressions (CTEs)
 2) Nested CTEs
 3) Recursive CTEs
-4) 
+4) Window Functions Practices
