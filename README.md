@@ -5,3 +5,4 @@ In this file, you are going to see different scenarios with demo database by usi
 2) Nested CTEs
 3) Recursive CTEs
 4) Window Functions Practices
+
