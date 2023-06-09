@@ -109,4 +109,36 @@ SELECT *
 FROM counter -- invocation
 LIMIT 10 -- termination check;
 
-8)
+8) Your task is to show not only the boss, but also his immediate subordinates. 
+For them, the path column should contain 'Boss->' plus the last_name of the respective employee.
+Take the results from the template and UNION them with the boss's immediate subordinates.
+
+WITH boss AS (
+  SELECT 
+    id, 
+    first_name, 
+    last_name, 
+    superior_id, 
+    'Boss' AS path 
+  FROM employee 
+  WHERE superior_id IS NULL
+) 
+
+SELECT
+  id,
+  first_name,
+  last_name,
+  superior_id,
+  'Boss' AS path
+FROM boss
+UNION
+SELECT
+employee.id,
+employee.first_name,
+employee.last_name,
+employee.superior_id,
+boss.path || '->' || employee.last_name
+FROM boss,employee
+WHERE boss.id = employee.superior_id;
+
+
