@@ -1,4 +1,4 @@
-1) Creating a recursive function with CTE whick lists numbers smaaller than 10.
+### 1) Creating a recursive function with CTE whick lists numbers smaaller than 10.
 
 WITH RECURSIVE counter (previous_value) AS (
   SELECT 1
@@ -12,7 +12,7 @@ SELECT *
 FROM counter;
 
 
-2) Query shows numbers from 20 to 5 (inclusive, in descending order).
+### 2) Query shows numbers from 20 to 5 (inclusive, in descending order).
 
 WITH RECURSIVE counter (previous_value) AS (
   SELECT 20
@@ -25,7 +25,7 @@ WITH RECURSIVE counter (previous_value) AS (
 SELECT * 
 FROM counter;
 
-3) In the query above, we show numbers from 1 to 10 plus the respective number multiplied by two.
+### 3) In the query above, we show numbers from 1 to 10 plus the respective number multiplied by two.
 
 WITH RECURSIVE counter (
   previous_value, previous_double) AS (
